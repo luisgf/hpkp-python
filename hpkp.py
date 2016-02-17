@@ -103,7 +103,7 @@ if __name__ == '__main__':
         with open(cert_file,'rb') as f:
             cert_data = f.read()
 
-        hpkp = HPKPPinGenerator(cert_data, cert_encoding, pin_ttl) # 1 month
+        hpkp = HPKPPinGenerator(cert_data, cert_encoding, pin_ttl) 
         pin_list.append(hpkp.get_pin())
 
     print(apache_directive(pin_ttl, pin_list, report_uri, include_subdomains))
