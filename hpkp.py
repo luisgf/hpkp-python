@@ -26,14 +26,12 @@ parser.add_option("-f","--file", dest="file_path", metavar="FILE",
 parser.add_option("-e","--encoding", dest="encoding", type="choice",
                   choices=['PEM','DER'], default='PEM',
                   help="Certificate format encoding. [PEM|DER]")
-parser.add_option("-t","--ttl", dest="pin_ttl", type=int, default=86400,
-                  help="TTL time in seconds for HPKP pin")
 parser.add_option("-u","--url", dest="report_uri", default=None,
                   help="The report URI to upload pin check errors")
-parser.add_option("-s","--subdomains", dest="subdomains", action="store_true",
+parser.add_option("-d","--subdomains", dest="subdomains", action="store_true",
                   help="Include Subdomains")
-parser.add_option("-x","--expiration", action="store_true",
-                  help="Show the expiration date-time for the pin")
+parser.add_option("-s","--show", action="store_true",
+                  help="Show the expiration date-time for the pin and duration")
 
 # Configure your root and backups certificates here. Will be added at the end
 # of the pin.
@@ -46,13 +44,7 @@ ROOT_CERTS = [('letsencrypt_ca/isrgrootx1.pem', Encoding.PEM),
 class HPKPPinGenerator():
     """Class implementing an HPKP Pin generator"""
 
-    def __init__(self, cert_data, cert_type=Encoding.PEM, pin_ttl=None):
-
-        if not pin_ttl:
-            raise Exception('PIN TTL Missing')
-        else:
-            self.pin_ttl = pin_ttl
-            self.pin_max_ttl = datetime.today() + timedelta(seconds=self.pin_ttl)
+    def __init__(self, cert_data, cert_type=Encoding.PEM):
 
         if cert_type is Encoding.PEM:
             self.cert = x509.load_pem_x509_certificate(cert_data, default_backend())
@@ -61,10 +53,10 @@ class HPKPPinGenerator():
         else:
             raise Exception('Certificate format not implemented yet')
 
-        # Date Verification
-        if self.pin_max_ttl > self.cert.not_valid_after:
-            raise Exception('HPKP PIN life exceed the certificate ttl %s'
-                            % str(self.cert.not_valid_after))
+        # Compute the max PIN ttl
+        self.pin_ttl = int((self.cert.not_valid_after -
+                        datetime.today()).total_seconds())
+
     def get_pin(self):
         """ HPKP pins are calculated over the public key of a certificate.
         This function return the pin for the current certificate"""
@@ -120,19 +112,26 @@ if __name__ == '__main__':
         leaf_enc = Encoding.DER
 
     pin_list = []
+
     leaf_cert = options.file_path
-    pin_ttl = options.pin_ttl
     report_uri = options.report_uri
     subdomains = options.subdomains
 
-    for (cert_file, cert_encoding) in [(leaf_cert, leaf_enc)] + ROOT_CERTS:
+    # Compute the pin for the leaf certificate
+    with open(leaf_cert,'rb') as f:
+        cert_data = f.read()
+        hpkp = HPKPPinGenerator(cert_data, leaf_enc)
+        pin_list.append(hpkp.get_pin())
+        pin_ttl = hpkp.pin_ttl
+
+        if options.show:
+            print('Pin will expire at %s. Be sure to update it at time' %
+              str(hpkp.cert.not_valid_after))
+
+    for (cert_file, cert_encoding) in ROOT_CERTS:
         with open(cert_file,'rb') as f:
             cert_data = f.read()
+            hpkp = HPKPPinGenerator(cert_data, cert_encoding)
+            pin_list.append(hpkp.get_pin())
 
-        hpkp = HPKPPinGenerator(cert_data, cert_encoding, pin_ttl)
-        pin_list.append(hpkp.get_pin())
-
-    if options.expiration:
-        print('Pin will expire at %s. Be sure to update it at this date' %
-          str(hpkp.pin_max_ttl))
     print(apache_directive(pin_ttl, pin_list, report_uri, subdomains))
