@@ -32,6 +32,8 @@ parser.add_option("-u","--url", dest="report_uri", default=None,
                   help="The report URI to upload pin check errors")
 parser.add_option("-s","--subdomains", dest="subdomains", action="store_true",
                   help="Include Subdomains")
+parser.add_option("-x","--expiration", action="store_true",
+                  help="Show the expiration date-time for the pin")
 
 # Configure your root and backups certificates here. Will be added at the end
 # of the pin.
@@ -130,6 +132,7 @@ if __name__ == '__main__':
         hpkp = HPKPPinGenerator(cert_data, cert_encoding, pin_ttl)
         pin_list.append(hpkp.get_pin())
 
-    print('Pin will expire at %s. Be sure to update it at this date' %
+    if options.expiration:
+        print('Pin will expire at %s. Be sure to update it at this date' %
           str(hpkp.pin_max_ttl))
     print(apache_directive(pin_ttl, pin_list, report_uri, subdomains))
