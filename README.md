@@ -13,10 +13,9 @@ your certificates.
 ROOT_CERTS is a variable of type "list" containing tuples as follow: (cert_path,
 cert_encoding). The encodings can be any of the types defined at: cryptography.hazmat.primitives.serialization.Encoding
 
-
 Program Parameters
 
-
+```
 Usage: hpkp.py [options]
 
 Options:
@@ -29,10 +28,9 @@ Options:
   -u REPORT_URI, --url=REPORT_URI
                         The report URI to upload pin check errors
   -s, --subdomains      Include Subdomains
+```
 
-
-
-ins has a TTL specified in pin_ttl variable. If pin_ttl exceed the expiry date
+Pins has a TTL specified in pin_ttl variable. If pin_ttl exceed the expiry date
 of certificate the program throws an exception.
 
 Enjoy It! - Luis González Fernández
