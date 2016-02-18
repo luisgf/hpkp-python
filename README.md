@@ -28,6 +28,7 @@ Options:
   -u REPORT_URI, --url=REPORT_URI
                         The report URI to upload pin check errors
   -s, --subdomains      Include Subdomains
+  -x, --expiration      Show the expiration date-time for the pin
 ```
 
 Pins has a TTL specified in pin_ttl variable. If pin_ttl exceed the expiry date
