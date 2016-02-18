@@ -24,7 +24,7 @@ parser = OptionParser()
 parser.add_option("-f","--file", dest="file_path", metavar="FILE",
                    help="Certificate file path to calculate HPKP pin.")
 parser.add_option("-e","--encoding", dest="encoding", type="choice",
-                  choices=['PEM','DER'],
+                  choices=['PEM','DER'], default='PEM',
                   help="Certificate format encoding. [PEM|DER]")
 parser.add_option("-t","--ttl", dest="pin_ttl", type=int, default=86400,
                   help="TTL time in seconds for HPKP pin")
@@ -36,10 +36,10 @@ parser.add_option("-s","--subdomains", dest="subdomains", action="store_true",
 # Configure your root and backups certificates here. Will be added at the end
 # of the pin.
 
-ROOT_CERTS = [('source/letsencrypt_ca/isrgrootx1.pem', Encoding.PEM),
-              ('source/letsencrypt_ca/dst_x3.pem', Encoding.PEM),
-              ('source/letsencrypt_ca/letsencryptauthorityx1.pem', Encoding.PEM),
-              ('source/letsencrypt_ca/letsencryptauthorityx2.pem', Encoding.PEM)]
+ROOT_CERTS = [('letsencrypt_ca/isrgrootx1.pem', Encoding.PEM),
+              ('letsencrypt_ca/dst_x3.pem', Encoding.PEM),
+              ('letsencrypt_ca/letsencryptauthorityx1.pem', Encoding.PEM),
+              ('letsencrypt_ca/letsencryptauthorityx2.pem', Encoding.PEM)]
 
 class HPKPPinGenerator():
     """Class implementing an HPKP Pin generator"""
@@ -130,4 +130,6 @@ if __name__ == '__main__':
         hpkp = HPKPPinGenerator(cert_data, cert_encoding, pin_ttl)
         pin_list.append(hpkp.get_pin())
 
+    print('Pin will expire at %s. Be sure to update it at this date' %
+          str(hpkp.pin_max_ttl))
     print(apache_directive(pin_ttl, pin_list, report_uri, subdomains))
