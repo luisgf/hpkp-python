@@ -8,7 +8,7 @@
     17/02/2016
 """
 
-__VERSION__ = 'v0.1'
+__VERSION__ = 'v0.2'
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -17,18 +17,29 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from hashlib import sha256
 from base64 import b64encode
 from datetime import datetime, timedelta
+from optparse import OptionParser
 
-# Configure your settings here
-CERTS =[('/etc/letsencrypt/live/[YOUR_PATH]/cert.pem', Encoding.PEM),
-        ('letsencrypt_ca/isrgrootx1.pem', Encoding.PEM),
-        ('letsencrypt_ca/dst_x3.pem', Encoding.PEM),
-        ('letsencrypt_ca/letsencryptauthorityx1.pem', Encoding.PEM),
-        ('letsencrypt_ca/letsencryptauthorityx2.pem', Encoding.PEM)]
+parser = OptionParser()
 
-pin_ttl = 2592000   # 1 month
-report_uri = None   # Report URL of failed
-include_subdomains = True
-# End of configuration
+parser.add_option("-f","--file", dest="file_path", metavar="FILE",
+                   help="Certificate file path to calculate HPKP pin.")
+parser.add_option("-e","--encoding", dest="encoding", type="choice",
+                  choices=['PEM','DER'],
+                  help="Certificate format encoding. [PEM|DER]")
+parser.add_option("-t","--ttl", dest="pin_ttl", type=int, default=86400,
+                  help="TTL time in seconds for HPKP pin")
+parser.add_option("-u","--url", dest="report_uri", default=None,
+                  help="The report URI to upload pin check errors")
+parser.add_option("-s","--subdomains", dest="subdomains", action="store_true",
+                  help="Include Subdomains")
+
+# Configure your root and backups certificates here. Will be added at the end
+# of the pin.
+
+ROOT_CERTS = [('source/letsencrypt_ca/isrgrootx1.pem', Encoding.PEM),
+              ('source/letsencrypt_ca/dst_x3.pem', Encoding.PEM),
+              ('source/letsencrypt_ca/letsencryptauthorityx1.pem', Encoding.PEM),
+              ('source/letsencrypt_ca/letsencryptauthorityx2.pem', Encoding.PEM)]
 
 class HPKPPinGenerator():
     """Class implementing an HPKP Pin generator"""
@@ -96,14 +107,27 @@ if __name__ == '__main__':
 
         Be sure to add the root CA and a backup certificate from another CA
     """
+    (options, args) = parser.parse_args()
+
+    if not options.file_path:
+        raise Exception('Missing leaf certificate')
+
+    if options.encoding == 'PEM':
+        leaf_enc = Encoding.PEM
+    elif options.encoding == 'DER':
+        leaf_enc = Encoding.DER
 
     pin_list = []
+    leaf_cert = options.file_path
+    pin_ttl = options.pin_ttl
+    report_uri = options.report_uri
+    subdomains = options.subdomains
 
-    for (cert_file, cert_encoding) in CERTS:
+    for (cert_file, cert_encoding) in [(leaf_cert, leaf_enc)] + ROOT_CERTS:
         with open(cert_file,'rb') as f:
             cert_data = f.read()
 
-        hpkp = HPKPPinGenerator(cert_data, cert_encoding, pin_ttl) 
+        hpkp = HPKPPinGenerator(cert_data, cert_encoding, pin_ttl)
         pin_list.append(hpkp.get_pin())
 
-    print(apache_directive(pin_ttl, pin_list, report_uri, include_subdomains))
+    print(apache_directive(pin_ttl, pin_list, report_uri, subdomains))
