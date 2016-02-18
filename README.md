@@ -23,12 +23,10 @@ Options:
   -f FILE, --file=FILE  Certificate file path to calculate HPKP pin.
   -e ENCODING, --encoding=ENCODING
                         Certificate format encoding. [PEM|DER]
-  -t PIN_TTL, --ttl=PIN_TTL
-                        TTL time in seconds for HPKP pin
   -u REPORT_URI, --url=REPORT_URI
                         The report URI to upload pin check errors
-  -s, --subdomains      Include Subdomains
-  -x, --expiration      Show the expiration date-time for the pin
+  -d, --subdomains      Include Subdomains
+  -s, --show            Show the expiration date-time for the pin and duration
 ```
 
 Pins has a TTL specified in pin_ttl variable. If pin_ttl exceed the expiry date
